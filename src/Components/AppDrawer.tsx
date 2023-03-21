@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useEffect } from "react";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -16,60 +16,117 @@ import MenuIcon from "@mui/icons-material/Menu";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import { INote } from "../models/INote";
-import { useState } from "react";
-import { TextareaAutosize, TextField } from "@mui/material";
+import { useState, useCallback } from "react";
+import { Button, Input, TextField } from "@mui/material";
 import CustomTextArea from "./CustomTextArea";
+import { Imode } from "../models/Imode";
+import uuid from "react-uuid";
 
-const drawerWidth = 240;
-
-const notesArray: INote[] = [
-  {
-    id: 1,
-    body: "Lorem ipsum, dolor sit amet consectetur adipisicing elit. Illum libero, pariatur deleniti vitae ut, fugit deserunt rerum odio architecto voluptas sit consequatur? Ad voluptatibus obcaecati consectetur similique. Dolor, magnam ipsum!",
-  },
-  {
-    id: 2,
-    body: "If you wish to reuse any or all of this article please use the link below which will take you to the Copyright Clearance Center’s RightsLink service. You will be able to get a quick price and instant permission to reuse the content in many different ways.",
-  },
-  {
-    id: 3,
-    body: "(Editing by Ed Osmond)The author is a Reuters contributor. The opinions expressed are her own)By Chris TaylorNEW YORK, April 1 Over a year ago, Susan Conner, then pregnant, made a life-altering",
-  },
-];
-
+const drawerWidth = 340;
+const emptyNote = {
+  id: "",
+  title: "",
+  body: "",
+  lastModified: 0,
+};
 interface Props {
   window?: () => Window;
 }
 
 export default function AppDrawer(props: Props) {
-  const [notes, setNotes] = useState<INote[]>(notesArray);
-  const [selectedNote, setSelectedNote] = useState<INote>();
+  const [notes, setNotes] = useState<INote[]>(
+    localStorage.notes ? JSON.parse(localStorage.notes) : []
+  );
+
+  const [selectedId, setSelectedId] = useState<string>();
+  const [mode, setMode] = useState<Imode>(Imode.view);
   const { window } = props;
-  const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem("notes", JSON.stringify(notes));
+  }, [notes]);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
 
+  const onAddNote = () => {
+    const newNote = {
+      id: uuid(),
+      title: "Untitled Note",
+      body: "New Note",
+      lastModified: Date.now(),
+    };
+
+    setNotes([newNote, ...notes]);
+    // setActiveNote(newNote.id);
+  };
+
+  const onUpdateNote = (updatedNote: INote) => {
+    const updatedNotesArr = notes.map((note) => {
+      if (note.id === updatedNote.id) {
+        return updatedNote;
+      }
+
+      return note;
+    });
+
+    setNotes(updatedNotesArr);
+  };
+
+  const onEditField = (field: "body" | "title", value: string) => {
+    onUpdateNote({
+      ...getSelectedNote(selectedId as string),
+      [field]: value,
+      lastModified: Date.now(),
+    });
+  };
+
+  const onDeleteNote = (noteId: string) => {
+    setNotes(notes.filter(({ id }) => id !== noteId));
+  };
+
+  const getSelectedNote = (selectedId: string): INote => {
+    return notes.find(({ id }) => id === selectedId) || emptyNote;
+  };
+
   const drawer = (
     <div>
-      <Toolbar />
+      <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
+        <h3>Notes</h3>
+        <Button variant="outlined" onClick={onAddNote}>
+          Add
+        </Button>
+      </Toolbar>
       <Divider />
       <List>
         {notes.map((note) => (
           <ListItem key={note.id} disablePadding>
-            <ListItemButton onClick={() => setSelectedNote(note)}>
-              <ListItemIcon>
-                {/* {index % 2 === 0 ? <InboxIcon /> : <MailIcon />} */}
-                {/* {note.body.slice(5)} */}
-              </ListItemIcon>
-              <ListItemText primary={note.body.slice(0, 15).concat("...")} />
+            <ListItemButton
+              onClick={() => {
+                setSelectedId(note.id);
+                setMode(Imode.view);
+              }}
+            >
+              <ListItemText primary={note.title.slice(0, 20).concat("...")} />
+              <Button
+                variant="text"
+                color="error"
+                onClick={() => onDeleteNote(note.id)}
+              >
+                Delete
+              </Button>
             </ListItemButton>
           </ListItem>
         ))}
       </List>
     </div>
   );
+
+  const setEditMode = useCallback(() => {
+    setMode(Imode.edit);
+  }, []);
 
   const container =
     window !== undefined ? () => window().document.body : undefined;
@@ -146,19 +203,38 @@ export default function AppDrawer(props: Props) {
         }}
       >
         <Toolbar />
-        {/* <Typography>{selectedNote?.body}</Typography> */}
-        <TextField
-          sx={{
-            height: "100vh",
+
+        <Box
+          onDoubleClick={() => {
+            setEditMode();
+            console.log("double");
           }}
-          fullWidth
-          multiline
-          InputProps={{
-            inputComponent: CustomTextArea,
-          }}
-          // value={text}
-          // onChange={handleChange}
-        />
+        >
+          <Typography variant="h2">
+            {getSelectedNote(selectedId as string)?.title}
+          </Typography>
+          <Typography>{getSelectedNote(selectedId as string)?.body}</Typography>
+        </Box>
+
+        <Box>
+          <Input
+            value={getSelectedNote(selectedId as string)?.title}
+            onChange={(e) => onEditField("title", e.target.value)}
+          />
+          <TextField
+            onDoubleClick={setEditMode}
+            sx={{
+              height: "100vh",
+            }}
+            fullWidth
+            multiline
+            inputProps={{
+              inputComponent: CustomTextArea,
+            }}
+            value={getSelectedNote(selectedId as string)?.body}
+            // onChange={handleChange}
+          />
+        </Box>
       </Box>
     </Box>
   );

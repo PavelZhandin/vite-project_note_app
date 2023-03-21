@@ -1,4 +1,6 @@
 export interface INote {
-  id: number;
+  id: string;
+  title: string;
   body: string;
+  lastModified: number;
 }
