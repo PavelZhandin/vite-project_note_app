@@ -1,11 +1,10 @@
-import { useEffect } from "react";
+import { useContext, useEffect } from "react";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
 import CssBaseline from "@mui/material/CssBaseline";
 import Divider from "@mui/material/Divider";
 import Drawer from "@mui/material/Drawer";
 import IconButton from "@mui/material/IconButton";
-import InboxIcon from "@mui/icons-material/MoveToInbox";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
@@ -21,7 +20,8 @@ import { Button, Input, TextField } from "@mui/material";
 import CustomTextArea from "./CustomTextArea";
 import { Imode } from "../models/Imode";
 import uuid from "react-uuid";
-
+import { ModeContext } from "../modeProvider";
+import DeleteModal from "./DeleteModal";
 const drawerWidth = 340;
 const emptyNote = {
   id: "",
@@ -34,6 +34,9 @@ interface Props {
 }
 
 export default function AppDrawer(props: Props) {
+  const [view, setView] = useContext(ModeContext);
+  console.log(view);
+
   const [notes, setNotes] = useState<INote[]>(
     localStorage.notes ? JSON.parse(localStorage.notes) : []
   );
@@ -52,8 +55,9 @@ export default function AppDrawer(props: Props) {
   };
 
   const onAddNote = () => {
+    const newNoteId = uuid();
     const newNote = {
-      id: uuid(),
+      id: newNoteId,
       title: "Untitled Note",
       body: "New Note",
       lastModified: Date.now(),
@@ -61,6 +65,7 @@ export default function AppDrawer(props: Props) {
 
     setNotes([newNote, ...notes]);
     // setActiveNote(newNote.id);
+    setSelectedId(newNoteId);
   };
 
   const onUpdateNote = (updatedNote: INote) => {
@@ -92,7 +97,7 @@ export default function AppDrawer(props: Props) {
   };
 
   const drawer = (
-    <div>
+    <Box>
       <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
         <h3>Notes</h3>
         <Button variant="outlined" onClick={onAddNote}>
@@ -104,28 +109,25 @@ export default function AppDrawer(props: Props) {
         {notes.map((note) => (
           <ListItem key={note.id} disablePadding>
             <ListItemButton
+              selected={note.id === selectedId}
               onClick={() => {
                 setSelectedId(note.id);
                 setMode(Imode.view);
               }}
             >
               <ListItemText primary={note.title.slice(0, 20).concat("...")} />
-              <Button
-                variant="text"
-                color="error"
-                onClick={() => onDeleteNote(note.id)}
-              >
-                Delete
-              </Button>
+
+              <DeleteModal onClick={() => onDeleteNote(note.id)} />
             </ListItemButton>
           </ListItem>
         ))}
       </List>
-    </div>
+    </Box>
   );
 
   const setEditMode = useCallback(() => {
-    setMode(Imode.edit);
+    // setMode(Imode.edit);
+    setView(Imode.edit);
   }, []);
 
   const container =
@@ -204,37 +206,53 @@ export default function AppDrawer(props: Props) {
       >
         <Toolbar />
 
-        <Box
-          onDoubleClick={() => {
-            setEditMode();
-            console.log("double");
-          }}
-        >
-          <Typography variant="h2">
-            {getSelectedNote(selectedId as string)?.title}
-          </Typography>
-          <Typography>{getSelectedNote(selectedId as string)?.body}</Typography>
-        </Box>
+        {/* {view === Imode.view && (
+          <Box
+            onDoubleClick={() => {
+              setEditMode();
+              console.log("double");
+            }}
+          >
+            <Typography variant="h2">
+              {getSelectedNote(selectedId as string)?.title}
+            </Typography>
+            <Typography>
+              {getSelectedNote(selectedId as string)?.body}
+            </Typography>
+          </Box>
+        )} */}
 
+        {/* {view === Imode.edit && ( */}
         <Box>
           <Input
             value={getSelectedNote(selectedId as string)?.title}
             onChange={(e) => onEditField("title", e.target.value)}
+            sx={{
+              fontSize: "60px",
+              "&::before": {
+                borderBottom: "none",
+              },
+              "&::after": {
+                borderBottom: "none",
+              },
+            }}
           />
           <TextField
-            onDoubleClick={setEditMode}
-            sx={{
-              height: "100vh",
-            }}
             fullWidth
             multiline
             inputProps={{
               inputComponent: CustomTextArea,
             }}
             value={getSelectedNote(selectedId as string)?.body}
-            // onChange={handleChange}
+            onChange={(e) => onEditField("body", e.target.value)}
+            sx={{
+              "& fieldset": {
+                borderColor: "transparent !important",
+              },
+            }}
           />
         </Box>
+        {/* )} */}
       </Box>
     </Box>
   );
