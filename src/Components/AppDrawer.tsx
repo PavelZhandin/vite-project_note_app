@@ -8,9 +8,7 @@ import IconButton from "@mui/material/IconButton";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
-import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
-import MailIcon from "@mui/icons-material/Mail";
 import MenuIcon from "@mui/icons-material/Menu";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
@@ -20,30 +18,37 @@ import { Button, Input, TextField } from "@mui/material";
 import CustomTextArea from "./CustomTextArea";
 import { Imode } from "../models/Imode";
 import uuid from "react-uuid";
-import { ModeContext } from "../modeProvider";
+import { ModeContext } from "../App";
 import DeleteModal from "./DeleteModal";
+import SearchInput from "./SearchInput";
+import GridViewIcon from "@mui/icons-material/GridView";
+import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
+import { useView } from "../Contexts/ViewContext";
+import NoteCard from "./NoteCard";
+import { useNotes } from "../Contexts/NotesContext";
+
 const drawerWidth = 340;
-const emptyNote = {
+
+interface Props {
+  window?: () => Window;
+}
+
+const emptyNote: INote = {
   id: "",
   title: "",
   body: "",
   lastModified: 0,
 };
-interface Props {
-  window?: () => Window;
-}
 
-export default function AppDrawer(props: Props) {
-  const [view, setView] = useContext(ModeContext);
-  console.log(view);
+export default function AppDrawer({ window }: Props) {
+  // const [mode, setMode] = useState<Imode>(Imode.view);
+  const [searchValue, setSearchValue] = useState("");
 
-  const [notes, setNotes] = useState<INote[]>(
-    localStorage.notes ? JSON.parse(localStorage.notes) : []
-  );
+  const { mode } = useContext(ModeContext);
 
-  const [selectedId, setSelectedId] = useState<string>();
-  const [mode, setMode] = useState<Imode>(Imode.view);
-  const { window } = props;
+  const { view, toggleView } = useView();
+  const { notes, setNotes, selectedNoteId, setSelectedNoteId } = useNotes();
+
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
@@ -64,12 +69,12 @@ export default function AppDrawer(props: Props) {
     };
 
     setNotes([newNote, ...notes]);
-    // setActiveNote(newNote.id);
-    setSelectedId(newNoteId);
+
+    setSelectedNoteId(newNoteId);
   };
 
   const onUpdateNote = (updatedNote: INote) => {
-    const updatedNotesArr = notes.map((note) => {
+    const updatedNotesArr = notes.map((note: INote) => {
       if (note.id === updatedNote.id) {
         return updatedNote;
       }
@@ -82,7 +87,7 @@ export default function AppDrawer(props: Props) {
 
   const onEditField = (field: "body" | "title", value: string) => {
     onUpdateNote({
-      ...getSelectedNote(selectedId as string),
+      ...getSelectedNote(selectedNoteId as string),
       [field]: value,
       lastModified: Date.now(),
     });
@@ -96,6 +101,10 @@ export default function AppDrawer(props: Props) {
     return notes.find(({ id }) => id === selectedId) || emptyNote;
   };
 
+  const handleFilteredNotes = (filterString: string) => {
+    setSearchValue(filterString.toLowerCase());
+  };
+
   const drawer = (
     <Box>
       <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
@@ -104,34 +113,30 @@ export default function AppDrawer(props: Props) {
           Add
         </Button>
       </Toolbar>
-      <Divider />
+      <SearchInput filterFunc={handleFilteredNotes} />
+      {/* <Divider /> */}
       <List>
-        {notes.map((note) => (
-          <ListItem key={note.id} disablePadding>
-            <ListItemButton
-              selected={note.id === selectedId}
-              onClick={() => {
-                setSelectedId(note.id);
-                setMode(Imode.view);
-              }}
-            >
-              <ListItemText primary={note.title.slice(0, 20).concat("...")} />
+        {notes
+          .filter((note: INote) =>
+            note.title.toLowerCase().includes(searchValue)
+          )
+          .map((note) => (
+            <ListItem key={note.id} disablePadding>
+              <ListItemButton
+                selected={note.id === selectedNoteId}
+                onClick={() => {
+                  setSelectedNoteId(note.id);
+                }}
+              >
+                <ListItemText primary={note.title.slice(0, 20).concat("...")} />
 
-              <DeleteModal onClick={() => onDeleteNote(note.id)} />
-            </ListItemButton>
-          </ListItem>
-        ))}
+                <DeleteModal onClick={() => onDeleteNote(note.id)} />
+              </ListItemButton>
+            </ListItem>
+          ))}
       </List>
     </Box>
   );
-
-  const setEditMode = useCallback(() => {
-    // setMode(Imode.edit);
-    setView(Imode.edit);
-  }, []);
-
-  const container =
-    window !== undefined ? () => window().document.body : undefined;
 
   return (
     <Box sx={{ display: "flex" }}>
@@ -139,7 +144,9 @@ export default function AppDrawer(props: Props) {
       <AppBar
         position="fixed"
         sx={{
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          width: {
+            sm: view === "row" ? `calc(100% - ${drawerWidth}px)` : "100%",
+          },
           ml: { sm: `${drawerWidth}px` },
         }}
       >
@@ -155,105 +162,153 @@ export default function AppDrawer(props: Props) {
           </IconButton>
           <Typography variant="h6" noWrap component="div">
             Responsive drawer
+            <IconButton
+              disabled={view === "grid"}
+              onClick={() => {
+                toggleView("grid");
+                setSelectedNoteId("");
+              }}
+            >
+              <GridViewIcon />
+            </IconButton>
           </Typography>
-        </Toolbar>
-      </AppBar>
-      <Box
-        component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
-        aria-label="mailbox folders"
-      >
-        {/* The implementation can be swapped with js to avoid SEO duplication of links. */}
-        <Drawer
-          container={container}
-          variant="temporary"
-          open={mobileOpen}
-          onClose={handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true, // Better open performance on mobile.
-          }}
-          sx={{
-            display: { xs: "block", sm: "none" },
-            "& .MuiDrawer-paper": {
-              boxSizing: "border-box",
-              width: drawerWidth,
-            },
-          }}
-        >
-          {drawer}
-        </Drawer>
-        <Drawer
-          variant="permanent"
-          sx={{
-            display: { xs: "none", sm: "block" },
-            "& .MuiDrawer-paper": {
-              boxSizing: "border-box",
-              width: drawerWidth,
-            },
-          }}
-          open
-        >
-          {drawer}
-        </Drawer>
-      </Box>
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          p: 3,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-        }}
-      >
-        <Toolbar />
-
-        {/* {view === Imode.view && (
-          <Box
-            onDoubleClick={() => {
-              setEditMode();
-              console.log("double");
+          <IconButton
+            disabled={view === "row"}
+            onClick={() => {
+              toggleView("row");
+              setSelectedNoteId("");
             }}
           >
-            <Typography variant="h2">
-              {getSelectedNote(selectedId as string)?.title}
-            </Typography>
-            <Typography>
-              {getSelectedNote(selectedId as string)?.body}
-            </Typography>
-          </Box>
-        )} */}
+            <FormatListBulletedIcon />
+          </IconButton>
+        </Toolbar>
+      </AppBar>
 
-        {/* {view === Imode.edit && ( */}
-        <Box>
-          <Input
-            value={getSelectedNote(selectedId as string)?.title}
-            onChange={(e) => onEditField("title", e.target.value)}
-            sx={{
-              fontSize: "60px",
-              "&::before": {
-                borderBottom: "none",
-              },
-              "&::after": {
-                borderBottom: "none",
-              },
-            }}
-          />
-          <TextField
-            fullWidth
-            multiline
-            inputProps={{
-              inputComponent: CustomTextArea,
-            }}
-            value={getSelectedNote(selectedId as string)?.body}
-            onChange={(e) => onEditField("body", e.target.value)}
-            sx={{
-              "& fieldset": {
-                borderColor: "transparent !important",
-              },
-            }}
-          />
+      {view === "row" && (
+        <Box display="flex">
+          <Box
+            component="nav"
+            sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+            aria-label="mailbox folders"
+          >
+            <Drawer
+              variant="permanent"
+              sx={{
+                display: { xs: "none", sm: "block" },
+                "& .MuiDrawer-paper": {
+                  boxSizing: "border-box",
+                  width: drawerWidth,
+                },
+              }}
+              open
+            >
+              {drawer}
+            </Drawer>
+          </Box>
+          {selectedNoteId && (
+            <Box
+              component="main"
+              sx={{
+                flexGrow: 1,
+                p: 3,
+                mt: "64px",
+                width: { sm: `calc(100% - ${drawerWidth}px)` },
+              }}
+            >
+              <Box>
+                <Input
+                  value={getSelectedNote(selectedNoteId as string)?.title}
+                  onChange={(e) => onEditField("title", e.target.value)}
+                  sx={{
+                    fontSize: "60px",
+                    "&::before": {
+                      borderBottom: "none",
+                    },
+                    "&::after": {
+                      borderBottom: "none",
+                    },
+                  }}
+                />
+                <TextField
+                  fullWidth
+                  multiline
+                  inputProps={{
+                    inputComponent: CustomTextArea,
+                  }}
+                  value={getSelectedNote(selectedNoteId as string)?.body}
+                  onChange={(e) => onEditField("body", e.target.value)}
+                  sx={{
+                    "& fieldset": {
+                      borderColor: "transparent !important",
+                    },
+                  }}
+                />
+              </Box>
+            </Box>
+          )}
         </Box>
-        {/* )} */}
-      </Box>
+      )}
+
+      {view === "grid" && (
+        <Box display="flex" flexDirection={"column"}>
+          {!selectedNoteId && (
+            <Box
+              p={3}
+              mt="64px"
+              display="flex"
+              gap="25px"
+              justifyContent="center"
+              flexWrap="wrap"
+              width={"100%"}
+            >
+              {notes.map((note: INote) => (
+                <NoteCard note={note} />
+              ))}
+            </Box>
+          )}
+          {selectedNoteId && (
+            <Box
+              component="main"
+              sx={{
+                flexGrow: 1,
+                p: 3,
+                mt: "64px",
+                width: { sm: `calc(100% - ${drawerWidth}px)` },
+              }}
+            >
+              <Box>
+                <Input
+                  value={getSelectedNote(selectedNoteId as string)?.title}
+                  onChange={(e) => onEditField("title", e.target.value)}
+                  sx={{
+                    fontSize: "60px",
+                    "&::before": {
+                      borderBottom: "none",
+                    },
+                    "&::after": {
+                      borderBottom: "none",
+                    },
+                  }}
+                />
+                <TextField
+                  fullWidth
+                  multiline
+                  inputProps={{
+                    inputComponent: CustomTextArea,
+                  }}
+                  value={getSelectedNote(selectedNoteId as string)?.body}
+                  onChange={(e) => onEditField("body", e.target.value)}
+                  sx={{
+                    "& fieldset": {
+                      borderColor: "transparent !important",
+                    },
+                  }}
+                />
+              </Box>
+            </Box>
+          )}
+        </Box>
+      )}
     </Box>
   );
 }

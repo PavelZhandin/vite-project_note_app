@@ -1,12 +1,26 @@
 import React, { useEffect, useState, useContext, createContext } from "react";
-// import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import "./App.css";
-import { Box } from "@mui/material";
+import { Box, ThemeProvider } from "@mui/material";
 import AppDrawer from "./Components/AppDrawer";
-import { ModeContext } from "./modeProvider";
+import { ThemeContext } from "@emotion/react";
+import { ViewProvider } from "./Contexts/ViewContext";
+import { NotesContext } from "./Contexts/NotesContext";
+// import { ModeContext } from "./modeProvider";
+
+const initialState = {
+  mode: "",
+  setMode: () => {},
+};
+
+export const ModeContext = createContext<{ mode: string; setMode: any }>(
+  initialState
+);
 
 function App() {
   const [mode, setMode] = useState("view");
+  // const [theme, setTheme] = useState({ theme: "light" });
+
+  const [value, setValue] = useState(0);
 
   const downHandler = ({ key }: KeyboardEvent) => {
     if (key === "Escape") {
@@ -21,9 +35,11 @@ function App() {
 
   return (
     <div className="App">
-      <ModeContext.Provider value={[mode, setMode]}>
-        <AppDrawer />
-      </ModeContext.Provider>
+      <ViewProvider>
+        <NotesContext>
+          <AppDrawer />
+        </NotesContext>
+      </ViewProvider>
     </div>
   );
 }
