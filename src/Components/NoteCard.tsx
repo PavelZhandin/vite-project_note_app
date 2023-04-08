@@ -1,53 +1,69 @@
-import React from "react";
+import { useEffect } from "react";
 import {
   Card,
   Typography,
   CardActionArea,
   CardContent,
   CardActions,
-  Button,
+  IconButton,
+  Box,
 } from "@mui/material";
 import { INote } from "../models/INote";
 import { useNotes } from "../Contexts/NotesContext";
+import DeleteModal from "./DeleteModal";
 
 const NoteCard = ({ note }: { note: INote }) => {
-  const { selectedNoteId, setSelectedNoteId } = useNotes();
+  const { notes, setNotes, selectedNoteId, setSelectedNoteId } = useNotes();
+
+  const handleDelete = (e: any) => {
+    setNotes(notes.filter(({ id }) => id !== note.id));
+    setSelectedNoteId("");
+  };
+
   return (
-    <Card
-      sx={{
-        minWidth: 275,
-        minHeight: 275,
-      }}
-    >
-      <CardActionArea
-        sx={{ height: "100%" }}
-        onClick={() => setSelectedNoteId(note.id)}
+    <>
+      <Card
+        sx={{
+          width: "100%",
+          maxWidth: 275,
+          height: 275,
+        }}
       >
-        <CardContent
+        <CardActionArea
           sx={{
             height: "100%",
             display: "flex",
             flexDirection: "column",
+            justifyContent: " space-between",
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedNoteId(note.id);
           }}
         >
-          <Typography
-            component="h4"
-            sx={{ fontSize: 24 }}
-            color="text.secondary"
-            gutterBottom
-          >
-            {note.title}
-          </Typography>
+          <CardContent>
+            <Typography
+              whiteSpace="normal"
+              component="h4"
+              sx={{ fontSize: 24 }}
+              color="text.secondary"
+              gutterBottom
+            >
+              {note.title}
+            </Typography>
 
-          <Typography>{note.body}</Typography>
-          <CardActions sx={{}}>
-            <Button size="small" color="error">
-              Delete
-            </Button>
-          </CardActions>
-        </CardContent>
-      </CardActionArea>
-    </Card>
+            <Typography>{note.body.slice(0, 160)}</Typography>
+          </CardContent>
+          <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+            <DeleteModal
+              onClick={() => {
+                handleDelete(note.id);
+              }}
+            />
+          </Box>
+        </CardActionArea>
+      </Card>
+    </>
   );
 };
 

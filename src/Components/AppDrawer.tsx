@@ -2,7 +2,6 @@ import { useContext, useEffect } from "react";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
 import CssBaseline from "@mui/material/CssBaseline";
-import Divider from "@mui/material/Divider";
 import Drawer from "@mui/material/Drawer";
 import IconButton from "@mui/material/IconButton";
 import List from "@mui/material/List";
@@ -15,7 +14,6 @@ import Typography from "@mui/material/Typography";
 import { INote } from "../models/INote";
 import { useState, useCallback } from "react";
 import { Button, Input, TextField } from "@mui/material";
-import CustomTextArea from "./CustomTextArea";
 import { Imode } from "../models/Imode";
 import uuid from "react-uuid";
 import { ModeContext } from "../App";
@@ -26,6 +24,7 @@ import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
 import { useView } from "../Contexts/ViewContext";
 import NoteCard from "./NoteCard";
 import { useNotes } from "../Contexts/NotesContext";
+import NoteEditArea from "./NoteEditArea";
 
 const drawerWidth = 340;
 
@@ -63,7 +62,7 @@ export default function AppDrawer({ window }: Props) {
     const newNoteId = uuid();
     const newNote = {
       id: newNoteId,
-      title: "Untitled Note",
+      title: `Untitled Note # ${notes.length + 1}`,
       body: "New Note",
       lastModified: Date.now(),
     };
@@ -141,6 +140,8 @@ export default function AppDrawer({ window }: Props) {
   return (
     <Box sx={{ display: "flex" }}>
       <CssBaseline />
+
+      {/* <TOPBAR> */}
       <AppBar
         position="fixed"
         sx={{
@@ -183,6 +184,7 @@ export default function AppDrawer({ window }: Props) {
           </IconButton>
         </Toolbar>
       </AppBar>
+      {/* </TOPBAR> */}
 
       {view === "row" && (
         <Box display="flex">
@@ -205,47 +207,7 @@ export default function AppDrawer({ window }: Props) {
               {drawer}
             </Drawer>
           </Box>
-          {selectedNoteId && (
-            <Box
-              component="main"
-              sx={{
-                flexGrow: 1,
-                p: 3,
-                mt: "64px",
-                width: { sm: `calc(100% - ${drawerWidth}px)` },
-              }}
-            >
-              <Box>
-                <Input
-                  value={getSelectedNote(selectedNoteId as string)?.title}
-                  onChange={(e) => onEditField("title", e.target.value)}
-                  sx={{
-                    fontSize: "60px",
-                    "&::before": {
-                      borderBottom: "none",
-                    },
-                    "&::after": {
-                      borderBottom: "none",
-                    },
-                  }}
-                />
-                <TextField
-                  fullWidth
-                  multiline
-                  inputProps={{
-                    inputComponent: CustomTextArea,
-                  }}
-                  value={getSelectedNote(selectedNoteId as string)?.body}
-                  onChange={(e) => onEditField("body", e.target.value)}
-                  sx={{
-                    "& fieldset": {
-                      borderColor: "transparent !important",
-                    },
-                  }}
-                />
-              </Box>
-            </Box>
-          )}
+          {selectedNoteId && <NoteEditArea />}
         </Box>
       )}
 
@@ -257,56 +219,15 @@ export default function AppDrawer({ window }: Props) {
               mt="64px"
               display="flex"
               gap="25px"
-              justifyContent="center"
               flexWrap="wrap"
-              width={"100%"}
+              width="100vw"
             >
               {notes.map((note: INote) => (
-                <NoteCard note={note} />
+                <NoteCard key={note.id} note={note} />
               ))}
             </Box>
           )}
-          {selectedNoteId && (
-            <Box
-              component="main"
-              sx={{
-                flexGrow: 1,
-                p: 3,
-                mt: "64px",
-                width: { sm: `calc(100% - ${drawerWidth}px)` },
-              }}
-            >
-              <Box>
-                <Input
-                  value={getSelectedNote(selectedNoteId as string)?.title}
-                  onChange={(e) => onEditField("title", e.target.value)}
-                  sx={{
-                    fontSize: "60px",
-                    "&::before": {
-                      borderBottom: "none",
-                    },
-                    "&::after": {
-                      borderBottom: "none",
-                    },
-                  }}
-                />
-                <TextField
-                  fullWidth
-                  multiline
-                  inputProps={{
-                    inputComponent: CustomTextArea,
-                  }}
-                  value={getSelectedNote(selectedNoteId as string)?.body}
-                  onChange={(e) => onEditField("body", e.target.value)}
-                  sx={{
-                    "& fieldset": {
-                      borderColor: "transparent !important",
-                    },
-                  }}
-                />
-              </Box>
-            </Box>
-          )}
+          {selectedNoteId && <NoteEditArea />}
         </Box>
       )}
     </Box>

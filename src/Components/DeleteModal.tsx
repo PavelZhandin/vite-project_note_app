@@ -19,6 +19,7 @@ type ModalProps = {
 
 const DeleteModal = ({ onClick }: ModalProps) => {
   const [open, setOpen] = useState(false);
+
   const handleOpen = (e: MouseEvent) => {
     e.stopPropagation();
     setOpen(true);
@@ -45,13 +46,23 @@ const DeleteModal = ({ onClick }: ModalProps) => {
           </Typography>
           <Box display="flex" justifyContent="flex-end" gap="15px">
             <Button
-              onClick={() => setOpen(false)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpen(false);
+              }}
               variant="outlined"
               color="info"
             >
               Cancel
             </Button>
-            <Button onClick={onClick} variant="contained" color="error">
+            <Button
+              onClick={(e: MouseEvent) => {
+                e.stopPropagation();
+                onClick();
+              }}
+              variant="contained"
+              color="error"
+            >
               Delete
             </Button>
           </Box>
